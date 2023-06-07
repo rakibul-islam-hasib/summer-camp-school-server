@@ -52,17 +52,20 @@ async function run() {
         const database = client.db("sound_safari");
         const userCollection = database.collection("users");
 
-        app.post('/new-user', verifyJWT, async (req, res) => {
+
+
+        await client.connect();
+
+
+
+        app.post('/new-user',  async (req, res) => {
             const newUser = req.body;
-            const email = newUser.email;
-            if (email !== req.decoded.email) {
-                return res.status(401).send({ error: true, message: 'Unauthorize access' });
-            }
+
             const result = await userCollection.insertOne(newUser);
             res.send(result);
         })
 
-        await client.connect();
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
