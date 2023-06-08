@@ -17,7 +17,7 @@ const verifyJWT = (req, res, next) => {
         return res.status(401).send({ error: true, message: 'Unauthorize access' })
     }
     const token = authorization?.split(' ')[1]
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.ACCESS_SECRET, (err, decoded) => {
         if (err) {
             return res.status(403).send({ error: true, message: 'forbidden user or token has expired' })
         }
@@ -25,11 +25,6 @@ const verifyJWT = (req, res, next) => {
         next()
     })
 }
-app.post('/api/set-token', (req, res) => {
-    const user = req.body;
-    const token = jwt.sign(user, process.env.ACCESS_SECRET, { expiresIn: '12h' })
-    res.send({ token })
-})
 
 // MONGO DB ROUTES
 
@@ -56,13 +51,29 @@ async function run() {
 
         await client.connect();
 
-
+        // Verify admin
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            if (user.role === 'admin') {
+                next()
+            }
+            else {
+                return res.status(401).send({ error: true, message: 'Unauthorize access' })
+            }
+        }
 
         app.post('/new-user', async (req, res) => {
             const newUser = req.body;
 
             const result = await userCollection.insertOne(newUser);
             res.send(result);
+        })
+        app.post('/api/set-token', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_SECRET, { expiresIn: '1d' })
+            res.send({ token })
         })
 
 
@@ -88,7 +99,26 @@ async function run() {
             res.send(result);
         })
         // UPDATE USER
-        
+        app.put('/update-user/:id', verifyJWT ,  async (req, res) => {
+            const id = req.params.id;
+            const updatedUser = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    name: updatedUser.name,
+                    email: updatedUser.email,
+                    role: updatedUser.option,
+                    address: updatedUser.address,
+                    phone: updatedUser.phone,
+                    about: updatedUser.about,
+                    photoUrl: updatedUser.photoUrl,
+                    skills: updatedUser.skills ? updatedUser.skills : null,
+                }
+            }
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
