@@ -58,11 +58,18 @@ async function run() {
 
 
 
-        app.post('/new-user',  async (req, res) => {
+        app.post('/new-user', async (req, res) => {
             const newUser = req.body;
 
             const result = await userCollection.insertOne(newUser);
             res.send(result);
+        })
+
+        
+        // GET ALL USERS
+        app.get('/users', async (req, res) => {
+            const users = await userCollection.find({}).toArray();
+            res.send(users);
         })
 
 
