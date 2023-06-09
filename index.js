@@ -89,17 +89,23 @@ async function run() {
             const user = await userCollection.findOne(query);
             res.send(user);
         })
-
+        // GET USER BY EMAIL
+        app.get('/user/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const result = await userCollection.findOne(query);
+            res.send(result);
+        })
         // Delete a user
 
-        app.delete('/delete-user/:id', verifyJWT, verifyAdmin ,  async (req, res) => {
+        app.delete('/delete-user/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await userCollection.deleteOne(query);
             res.send(result);
         })
         // UPDATE USER
-        app.put('/update-user/:id', verifyJWT ,  verifyAdmin ,  async (req, res) => {
+        app.put('/update-user/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const updatedUser = req.body;
             const filter = { _id: new ObjectId(id) };
