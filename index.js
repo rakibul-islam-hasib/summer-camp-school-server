@@ -149,7 +149,13 @@ async function run() {
             res.send(result);
         });
 
-
+        // GET ALL CLASSES ADDED BY INSTRUCTOR
+        app.get('/classes/:email', verifyJWT, verifyInstructor, async (req, res) => {
+            const email = req.params.email;
+            const query = { instructorEmail: email };
+            const result = await classesCollection.find(query).toArray();
+            res.send(result);
+        })
 
 
 
