@@ -46,7 +46,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         const database = client.db("sound_safari");
         const userCollection = database.collection("users");
-
+        const classesCollection = database.collection("classes");
 
 
         await client.connect();
@@ -64,6 +64,19 @@ async function run() {
             }
         }
 
+        const verifyInstructor = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            if (user.role === 'instructor' || user.role === 'admin') {
+                next()
+            }
+            else {
+                return res.status(401).send({ error: true, message: 'Unauthorize access' })
+            }
+        }
+
+
         app.post('/new-user', async (req, res) => {
             const newUser = req.body;
 
@@ -72,7 +85,7 @@ async function run() {
         })
         app.post('/api/set-token', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_SECRET, { expiresIn: '1d' })
+            const token = jwt.sign(user, process.env.ACCESS_SECRET, { expiresIn: '24h' })
             res.send({ token })
         })
 
@@ -125,6 +138,23 @@ async function run() {
             const result = await userCollection.updateOne(filter, updateDoc, options);
             res.send(result);
         })
+
+
+        // ! CLASSES ROUTES
+        
+        
+        app.post('/new-class', verifyJWT, verifyInstructor, async (req, res) => {
+            const newClass = req.body;
+            const result = await classesCollection.insertOne(newClass);
+            res.send(result);
+        });
+
+
+
+
+
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
