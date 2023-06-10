@@ -13,7 +13,7 @@ app.use(express.json());
 // SET TOKEN .
 const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
-    console.log(authorization , 'authorization')
+    console.log(authorization, 'authorization')
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'Unauthorize access' })
     }
@@ -48,7 +48,7 @@ async function run() {
         const database = client.db("sound_safari");
         const userCollection = database.collection("users");
         const classesCollection = database.collection("classes");
-
+        const cartCollection = database.collection("cart");
 
         await client.connect();
 
@@ -142,8 +142,8 @@ async function run() {
 
 
         // ! CLASSES ROUTES
-        
-        
+
+
         app.post('/new-class', verifyJWT, verifyInstructor, async (req, res) => {
             const newClass = req.body;
             const result = await classesCollection.insertOne(newClass);
@@ -178,8 +178,50 @@ async function run() {
             const result = await classesCollection.updateOne(filter, updateDoc, options);
             res.send(result);
         })
+        // * GET APPROVED CLASSES
+        app.get('/approved-classes', async (req, res) => {
+            const query = { status: 'approved' };
+            const result = await classesCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        // GET ALL INSTRUCTORS
+        app.get('/instructors', async (req, res) => {
+            const query = { role: 'instructor' };
+            const result = await userCollection.find(query).toArray();
+            res.send(result);
+        })
 
 
+
+
+        // ! CART ROUTES
+
+        // ADD TO CART
+        app.post('/add-to-cart', verifyJWT, async (req, res) => {
+            const newCartItem = req.body;
+            const result = await cartCollection.insertOne(newCartItem);
+            res.send(result);
+        })
+        // Get cart item id for checking if a class is already in cart
+        app.get('/cart-item/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { classId: id };
+            const projection = { classId: 1 };
+            const result = await cartCollection.findOne(query, { projection: projection });
+            res.send(result);
+        })
+
+        app.get('/cart/:email',  verifyJWT ,  async (req, res) => {
+            const email = req.params.email;
+            const query = { userMail: email };
+            const projection = { classId: 1 };
+            const carts = await cartCollection.find(query , {projection : projection}).toArray();
+            const classIds = carts.map(cart => new ObjectId(cart.classId));
+            const query2 = { _id: { $in: classIds } };
+            const result = await classesCollection.find(query2).toArray();
+            res.send(result);
+        })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
