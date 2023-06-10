@@ -228,7 +228,7 @@ async function run() {
         // PAYMENT ROUTES
         app.post('/create-payment-intent', verifyJWT, async (req, res) => {
             const { price } = req.body;
-            const amount = price * 100;
+            const amount = parseInt(price) * 100;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: 'usd',
@@ -244,15 +244,26 @@ async function run() {
             const classesId = paymentInfo.classesId;
             const userEmail = paymentInfo.userEmail;
             const query = { classId: { $in: classesId } };
+            const classesQuery = { _id: { $in: classesId.map(id => new ObjectId(id)) } }
+            const classes = await classesCollection.find(classesQuery).toArray();
             const newEnrolledData = {
                 userEmail: userEmail,
                 classesId: classesId,
                 transactionId: paymentInfo.transactionId,
             }
+
+
+            const updatedDoc = {
+                $set: {
+                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 1 // if no class is found, set enrolled to 1
+                }
+            }
+
+            const updatedResult = await classesCollection.updateMany(classesQuery, updatedDoc , { upsert: true });
             const enrolledResult = await enrolledCollection.insertOne(newEnrolledData);
             const deletedResult = await cartCollection.deleteMany(query);
             const paymentResult = await paymentCollection.insertOne(paymentInfo);
-            res.send({ paymentResult, deletedResult, enrolledResult });
+            res.send({ paymentResult, deletedResult, enrolledResult, updatedResult });
         })
 
         // Send a ping to confirm a successful connection
