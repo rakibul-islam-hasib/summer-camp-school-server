@@ -13,6 +13,7 @@ app.use(express.json());
 // SET TOKEN .
 const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
+    console.log(authorization , 'authorization')
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'Unauthorize access' })
     }
@@ -157,8 +158,26 @@ async function run() {
             res.send(result);
         })
 
+        // GET ALL CLASSES
+        app.get('/classes', async (req, res) => {
+            const result = await classesCollection.find().toArray();
+            res.send(result);
+        })
 
-
+        // Change status of a class
+        app.put('/change-status/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const status = req.body.status;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    status: status,
+                }
+            }
+            const result = await classesCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
 
 
         // Send a ping to confirm a successful connection
