@@ -237,7 +237,12 @@ async function run() {
                 clientSecret: paymentIntent.client_secret
             });
         })
-
+        // POST PAYMENT INFO 
+        app.post('/payment-info', verifyJWT, async (req, res) => {
+            const paymentInfo = req.body;
+            const result = await paymentCollection.insertOne(paymentInfo);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
