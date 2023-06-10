@@ -49,7 +49,8 @@ async function run() {
         const userCollection = database.collection("users");
         const classesCollection = database.collection("classes");
         const cartCollection = database.collection("cart");
-
+        const enrolledCollection = database.collection("enrolled");
+        const paymentCollection = database.collection("payments");
         await client.connect();
 
         // Verify admin
@@ -225,7 +226,7 @@ async function run() {
 
 
         // PAYMENT ROUTES
-        app.post('/create-payment-intent', verifyJWT ,  async (req, res) => {
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
             const { price } = req.body;
             const amount = price * 100;
             const paymentIntent = await stripe.paymentIntents.create({
@@ -240,8 +241,18 @@ async function run() {
         // POST PAYMENT INFO 
         app.post('/payment-info', verifyJWT, async (req, res) => {
             const paymentInfo = req.body;
-            const result = await paymentCollection.insertOne(paymentInfo);
-            res.send(result);
+            const classesId = paymentInfo.classesId;
+            const userEmail = paymentInfo.userEmail;
+            const query = { classId: { $in: classesId } };
+            const newEnrolledData = {
+                userEmail: userEmail,
+                classesId: classesId,
+                transactionId: paymentInfo.transactionId,
+            }
+            const enrolledResult = await enrolledCollection.insertOne(newEnrolledData);
+            const deletedResult = await cartCollection.deleteMany(query);
+            const paymentResult = await paymentCollection.insertOne(paymentInfo);
+            res.send({ paymentResult, deletedResult, enrolledResult });
         })
 
         // Send a ping to confirm a successful connection
