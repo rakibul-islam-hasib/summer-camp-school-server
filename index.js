@@ -251,14 +251,11 @@ async function run() {
                 classesId: classesId,
                 transactionId: paymentInfo.transactionId,
             }
-
-
             const updatedDoc = {
                 $set: {
-                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 1 // if no class is found, set enrolled to 1
+                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 1 ,
                 }
             }
-
             const updatedResult = await classesCollection.updateMany(classesQuery, updatedDoc , { upsert: true });
             const enrolledResult = await enrolledCollection.insertOne(newEnrolledData);
             const deletedResult = await cartCollection.deleteMany(query);
