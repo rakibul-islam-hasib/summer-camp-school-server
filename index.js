@@ -147,6 +147,7 @@ async function run() {
 
         app.post('/new-class', verifyJWT, verifyInstructor, async (req, res) => {
             const newClass = req.body;
+            newClass.availableSeats = parseInt(newClass.availableSeats)
             const result = await classesCollection.insertOne(newClass);
             res.send(result);
         });
@@ -161,7 +162,8 @@ async function run() {
 
         // GET ALL CLASSES
         app.get('/classes', async (req, res) => {
-            const result = await classesCollection.find().toArray();
+            const query = { status: 'approved' };
+            const result = await classesCollection.find(query).toArray();
             res.send(result);
         })
 
@@ -253,15 +255,65 @@ async function run() {
             }
             const updatedDoc = {
                 $set: {
-                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 1 ,
+                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 1,
+                    availableSeats: classes.reduce((total, current) => total + current.availableSeats, 0) - 1 || 0,
                 }
             }
-            const updatedResult = await classesCollection.updateMany(classesQuery, updatedDoc , { upsert: true });
+            // const updatedInstructor = await userCollection.find()
+            const updatedResult = await classesCollection.updateMany(classesQuery, updatedDoc, { upsert: true });
             const enrolledResult = await enrolledCollection.insertOne(newEnrolledData);
             const deletedResult = await cartCollection.deleteMany(query);
             const paymentResult = await paymentCollection.insertOne(paymentInfo);
             res.send({ paymentResult, deletedResult, enrolledResult, updatedResult });
         })
+
+        app.get('/popular_classes', async (req, res) => {
+            const result = await classesCollection.find().sort({ totalEnrolled: -1 }).limit(6).toArray();
+            res.send(result);
+        })
+
+
+        app.get('/popular-instructors', async (req, res) => {
+            const pipeline = [
+                {
+                    $group: {
+                        _id: "$instructorEmail",
+                        totalEnrolled: { $sum: "$totalEnrolled" },
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "_id",
+                        foreignField: "email",
+                        as: "instructor"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        instructor: {
+                            $arrayElemAt: ["$instructor", 0]
+                        },
+                        totalEnrolled: 1
+                    }
+                },
+                {
+                    $sort: {
+                        totalEnrolled: -1
+                    }
+                },
+                {
+                    $limit: 6
+                }
+            ]
+            const result = await classesCollection.aggregate(pipeline).toArray();
+            res.send(result);
+
+        })
+
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
