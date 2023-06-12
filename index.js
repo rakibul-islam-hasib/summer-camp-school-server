@@ -302,7 +302,7 @@ async function run() {
             }
             const updatedDoc = {
                 $set: {
-                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 1,
+                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 0,
                     availableSeats: classes.reduce((total, current) => total + current.availableSeats, 0) - 1 || 0,
                 }
             }
