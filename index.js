@@ -175,11 +175,15 @@ async function run() {
         app.put('/change-status/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const status = req.body.status;
+            console.log(req.body)
+            const reason = req.body.reason;
             const filter = { _id: new ObjectId(id) };
+            console.log("🚀 ~ file: index.js:180 ~ app.put ~ reason:", reason)
             const options = { upsert: true };
             const updateDoc = {
                 $set: {
                     status: status,
+                    reason: reason
                 }
             }
             const result = await classesCollection.updateOne(filter, updateDoc, options);
