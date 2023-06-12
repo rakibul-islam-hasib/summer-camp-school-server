@@ -312,7 +312,27 @@ async function run() {
 
         })
 
+        // Admins stats 
+        app.get('/admin-stats', verifyJWT , verifyAdmin ,  async (req, res) => {
+            // Get approved classes and pending classes and instructors 
+            const approvedClasses = (await classesCollection.find({ status: 'approved' }).toArray()).length;
+            const pendingClasses = (await classesCollection.find({ status: 'pending' }).toArray()).length;
+            const instructors = (await userCollection.find({ role: 'instructor' }).toArray()).length;
+            const totalClasses = (await classesCollection.find().toArray()).length;
+            const totalEnrolled = (await enrolledCollection.find().toArray()).length;
+            // const totalRevenue = await paymentCollection.find().toArray();
+            // const totalRevenueAmount = totalRevenue.reduce((total, current) => total + parseInt(current.price), 0);
+            const result = {
+                approvedClasses,
+                pendingClasses,
+                instructors,
+                totalClasses,
+                totalEnrolled,
+                // totalRevenueAmount
+            }
+            res.send(result);
 
+        })
 
 
         // Send a ping to confirm a successful connection
