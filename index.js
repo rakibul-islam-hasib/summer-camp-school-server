@@ -51,7 +51,7 @@ async function run() {
         const cartCollection = database.collection("cart");
         const enrolledCollection = database.collection("enrolled");
         const paymentCollection = database.collection("payments");
-        await client.connect();
+        client.connect();
 
         // Verify admin
         const verifyAdmin = async (req, res, next) => {
@@ -210,7 +210,7 @@ async function run() {
         app.get('/cart-item/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const email = req.query.email;
-            const query = { classId: id , userMail: email};
+            const query = { classId: id, userMail: email };
             const projection = { classId: 1 };
             const result = await cartCollection.findOne(query, { projection: projection });
             res.send(result);
@@ -227,7 +227,14 @@ async function run() {
             res.send(result);
         })
 
-
+        // Delete a item form cart
+        app.delete('/delete-cart-item/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { classId: id };
+            // console.log("🚀 ~ file: index.js:234 ~ app.delete ~ id:", id)
+            const result = await cartCollection.deleteOne(query);
+            res.send(result);
+        })
         // PAYMENT ROUTES
         app.post('/create-payment-intent', verifyJWT, async (req, res) => {
             const { price } = req.body;
@@ -267,6 +274,17 @@ async function run() {
             const paymentResult = await paymentCollection.insertOne(paymentInfo);
             res.send({ paymentResult, deletedResult, enrolledResult, updatedResult });
         })
+
+
+        app.get('/payment-history/:email' , async (req, res) => {
+            const email = req.params.email;
+            const query = { userEmail: email };
+            const result = await paymentCollection.find(query).sort({date : -1}).toArray();
+            res.send(result);
+        })
+
+
+        // ! ENROLLED ROUTES
 
         app.get('/popular_classes', async (req, res) => {
             const result = await classesCollection.find().sort({ totalEnrolled: -1 }).limit(6).toArray();
