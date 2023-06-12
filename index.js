@@ -209,7 +209,8 @@ async function run() {
         // Get cart item id for checking if a class is already in cart
         app.get('/cart-item/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
-            const query = { classId: id };
+            const email = req.query.email;
+            const query = { classId: id , userMail: email};
             const projection = { classId: 1 };
             const result = await cartCollection.findOne(query, { projection: projection });
             res.send(result);
@@ -313,7 +314,7 @@ async function run() {
         })
 
         // Admins stats 
-        app.get('/admin-stats', verifyJWT , verifyAdmin ,  async (req, res) => {
+        app.get('/admin-stats', verifyJWT, verifyAdmin, async (req, res) => {
             // Get approved classes and pending classes and instructors 
             const approvedClasses = (await classesCollection.find({ status: 'approved' }).toArray()).length;
             const pendingClasses = (await classesCollection.find({ status: 'pending' }).toArray()).length;
