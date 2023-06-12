@@ -231,7 +231,6 @@ async function run() {
         app.delete('/delete-cart-item/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { classId: id };
-            // console.log("🚀 ~ file: index.js:234 ~ app.delete ~ id:", id)
             const result = await cartCollection.deleteOne(query);
             res.send(result);
         })
@@ -253,7 +252,14 @@ async function run() {
             const paymentInfo = req.body;
             const classesId = paymentInfo.classesId;
             const userEmail = paymentInfo.userEmail;
-            const query = { classId: { $in: classesId } };
+            const singleClassId = req.query.classId;
+            let query;
+            // const query = { classId: { $in: classesId } };
+            if (singleClassId) {
+                query = { classId: singleClassId, userMail: userEmail };
+            } else {
+                query = { classId: { $in: classesId }};
+            }
             const classesQuery = { _id: { $in: classesId.map(id => new ObjectId(id)) } }
             const classes = await classesCollection.find(classesQuery).toArray();
             const newEnrolledData = {
@@ -272,7 +278,7 @@ async function run() {
             const enrolledResult = await enrolledCollection.insertOne(newEnrolledData);
             const deletedResult = await cartCollection.deleteMany(query);
             const paymentResult = await paymentCollection.insertOne(paymentInfo);
-            res.send({ paymentResult, deletedResult, enrolledResult, updatedResult });
+            res.send({ paymentResult , deletedResult, enrolledResult, updatedResult });
         })
 
 
@@ -281,6 +287,14 @@ async function run() {
             const query = { userEmail: email };
             const result = await paymentCollection.find(query).sort({date : -1}).toArray();
             res.send(result);
+        })
+
+
+        app.get('/payment-history-length/:email' , async (req, res) => {
+            const email = req.params.email;
+            const query = { userEmail: email };
+            const total = await paymentCollection.countDocuments(query);
+            res.send({total});
         })
 
 
