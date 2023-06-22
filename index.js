@@ -51,6 +51,7 @@ async function run() {
         const cartCollection = database.collection("cart");
         const enrolledCollection = database.collection("enrolled");
         const paymentCollection = database.collection("payments");
+        const appliedCollection = database.collection("applied");
         client.connect();
 
         // Verify admin
@@ -452,6 +453,12 @@ async function run() {
             res.send(result);
         })
 
+        // Applied route 
+        app.post('/as-instructor', async (req, res) => {
+            const data = req.body;
+            const result = await appliedCollection.insertOne(data);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
